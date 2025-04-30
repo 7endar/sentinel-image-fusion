@@ -56,3 +56,9 @@ for method, (pre_path, post_path) in fusion_methods.items():
 
         save_mask_tif(combined_mask, fused_transform, tif_path)
         save_mask_png(combined_mask, png_path)
+
+        # Fusion maskesinin SAR ile birleşmeden direkt halini kaydet (non_combined)
+        non_combined_tif_path = f"urban_masks/tif/{base_name}_non_combined_urban_mask.tif"
+        non_combined_png_path = f"urban_masks/{base_name}_non_combined_urban_mask.png"
+        save_mask_tif(fused_mask, fused_transform, non_combined_tif_path)
+        save_mask_png(fused_mask, non_combined_png_path)
