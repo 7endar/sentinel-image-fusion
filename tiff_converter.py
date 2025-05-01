@@ -3,20 +3,18 @@ import numpy as np
 from PIL import Image
 import rasterio
 
-def create_red_transparent_overlay(png_path, reference_tif_path, output_tif_path):
-    # PNG'yi grayscale olarak yükle
-    img = Image.open(png_path).convert("L")
-    mask = np.array(img)
 
-    # RGBA görüntü oluştur (kırmızı alanlar opak, diğer yerler tam saydam)
-    rgba = np.zeros((mask.shape[0], mask.shape[1], 4), dtype=np.uint8)
-    rgba[mask > 0] = [255, 0, 0, 255]  # kırmızı ve opak
-    rgba[mask == 0] = [0, 0, 0, 0]     # tam saydam
+def create_transparent_overlay_from_png(png_path, reference_tif_path, output_tif_path):
+    # PNG'yi RGB olarak oku
+    img = Image.open(png_path).convert("RGB")
+    rgb = np.array(img)
 
-    # Kanalları ayır
-    r, g, b, a = [rgba[:, :, i] for i in range(4)]
+    # Saydamlık kanalı oluştur: siyah (0,0,0) olan yerler tamamen saydam (alpha = 0)
+    alpha = np.where(np.all(rgb == [0, 0, 0], axis=-1), 0, 255).astype(np.uint8)
 
-    # Referans TIF'ten coğrafi bilgi al
+    # RGBA dizisi oluştur
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+
     with rasterio.open(reference_tif_path) as ref:
         profile = ref.profile
         profile.update({
@@ -24,36 +22,26 @@ def create_red_transparent_overlay(png_path, reference_tif_path, output_tif_path
             'dtype': 'uint8',
             'driver': 'GTiff'
         })
-
         transform = ref.transform
         crs = ref.crs
 
-    # GeoTIFF olarak kaydet
-    profile.update({
-        'transform': transform,
-        'crs': crs
-    })
+    profile.update({'transform': transform, 'crs': crs})
 
     with rasterio.open(output_tif_path, 'w', **profile) as dst:
         dst.write(r, 1)
         dst.write(g, 2)
         dst.write(b, 3)
-        dst.write(a, 4)
+        dst.write(alpha, 4)
 
-    print(f"GeoTIFF oluşturuldu: {output_tif_path}")
 
-# Klasör yolları
-input_folder = "change_detections/damage_masks"
-output_folder = os.path.join(input_folder, "tif")
+input_folder = "change_detections"
+output_folder = os.path.join(input_folder, "gee_tif")
+os.makedirs(output_folder, exist_ok=True)
 reference_tif_path = "data/S1_Pre_VV.tif"
 
-# Kayıt klasörü yoksa oluştur
-os.makedirs(output_folder, exist_ok=True)
-
-# Tüm PNG dosyaları için işlemi yap
 for filename in os.listdir(input_folder):
     if filename.lower().endswith(".png"):
         png_path = os.path.join(input_folder, filename)
         output_filename = os.path.splitext(filename)[0] + ".tif"
         output_path = os.path.join(output_folder, output_filename)
-        create_red_transparent_overlay(png_path, reference_tif_path, output_path)
+        create_transparent_overlay_from_png(png_path, reference_tif_path, output_path)

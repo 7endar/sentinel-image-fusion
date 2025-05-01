@@ -1,7 +1,6 @@
 import rasterio
 import numpy as np
 import matplotlib.pyplot as plt
-import os
 
 
 def read_tif(path):
@@ -35,7 +34,6 @@ def mask_change_detection(pre_mask, post_mask, pre_transform, method_name):
     plt.imsave(f"change_detections/{method_name.lower()}_mask.png", np.clip(rgb_image, 0, 1))
 
     # SAVE AS TIFF
-    os.makedirs("change_detections/tif", exist_ok=True)
     save_image_tif(rgb_image.transpose(2, 0, 1), f"change_detections/tif/{method_name.lower()}_mask.tif", pre_transform, dtype=np.float32)
 
     # Damaged Areas
@@ -46,16 +44,29 @@ def mask_change_detection(pre_mask, post_mask, pre_transform, method_name):
 
 
 fusion_methods = {
-    'Brovey': ("urban_masks/tif/Brovey_pre_non_combined_urban_mask.tif", "urban_masks/tif/Brovey_post_non_combined_urban_mask.tif"),
-    'PCA': ("urban_masks/tif/PCA_pre_non_combined_urban_mask.tif", "urban_masks/tif/PCA_post_non_combined_urban_mask.tif"),
-    'Wavelet': ("urban_masks/tif/Wavelet_pre_non_combined_urban_mask.tif", "urban_masks/tif/Wavelet_post_non_combined_urban_mask.tif"),
-    'Default': ("urban_masks/tif/Default_pre_non_combined_urban_mask.tif", "urban_masks/tif/Default_post_non_combined_urban_mask.tif")
+    'Brovey': ("urban_masks/tif/brovey_pre_urban_mask.tif",
+               "urban_masks/tif/brovey_post_urban_mask.tif",
+               "urban_masks/tif/Brovey_pre_non_combined_urban_mask.tif",
+               "urban_masks/tif/Brovey_post_non_combined_urban_mask.tif"),
+    'PCA': ("urban_masks/tif/pca_pre_urban_mask.tif",
+            "urban_masks/tif/pca_post_urban_mask.tif",
+            "urban_masks/tif/PCA_pre_non_combined_urban_mask.tif",
+            "urban_masks/tif/PCA_post_non_combined_urban_mask.tif"),
+    'Wavelet': ("urban_masks/tif/wavelet_pre_urban_mask.tif",
+                "urban_masks/tif/wavelet_post_urban_mask.tif",
+                "urban_masks/tif/Wavelet_pre_non_combined_urban_mask.tif",
+                "urban_masks/tif/Wavelet_post_non_combined_urban_mask.tif"),
+    'Default': ("urban_masks/tif/default_pre_urban_mask.tif",
+                "urban_masks/tif/default_post_urban_mask.tif",
+                "urban_masks/tif/Default_pre_non_combined_urban_mask.tif",
+                "urban_masks/tif/Default_post_non_combined_urban_mask.tif")
 }
 
-for method_name, (pre_mask_path, post_mask_path) in fusion_methods.items():
+for method_name, (pre_mask_path, post_mask_path, non_combined_pre_mask_path, non_combined_post_mask_path) in fusion_methods.items():
     pre_mask, pre_mask_transform = read_tif(pre_mask_path)
     post_mask, post_mask_transform = read_tif(post_mask_path)
-    if pre_mask.shape != post_mask.shape:
-        raise ValueError(f"Mask shapes do not match for {method_name}: {pre_mask.shape} vs {post_mask.shape}")
-
     mask_change_detection(pre_mask, post_mask, pre_mask_transform, method_name)
+
+    non_combined_pre_mask, non_combined_pre_mask_transform = read_tif(non_combined_pre_mask_path)
+    non_combined_post_mask, non_combined_post_mask_transform = read_tif(non_combined_post_mask_path)
+    mask_change_detection(non_combined_pre_mask, non_combined_post_mask, non_combined_pre_mask_transform, f"non_combined_{method_name}")

@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 import pywt
-import tensorflow as tf
 
 
 def read_image(path):
@@ -43,7 +42,7 @@ def pca_fusion(s1, s2):
     combined = np.vstack((s2, s1[np.newaxis, ...])).reshape(4, -1).T
     pca = PCA(n_components=3)
     fused = pca.fit_transform(combined)
-    fused = (fused - fused.min()) / (fused.max() - fused.min() + 1e-6) * 255  # normalize to 0-255
+    fused = (fused - fused.min()) / (fused.max() - fused.min() + 1e-6) * 255 
     return fused.T.reshape(3, s2.shape[1], s2.shape[2])
 
 
